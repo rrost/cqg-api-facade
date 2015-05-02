@@ -4,7 +4,7 @@ CQG API Facade library is pure C++ Facade for CQG API which originally is COM/Au
 C++ COM/Automation programming is tricky even with MFC/ATL libraries supplied with Microsoft Visual C++, code looks ugly
 being overloaded with many details related to COM itself rather than to actual problem to solve.
 
-CQG API Facade is static library than encapsulates CQG API COM guts and exposes simple and clear pure C++ interface
+CQG API Facade is static library that encapsulates CQG API COM guts and exposes simple and clear pure C++ interface
 making CQG API usage easy even for novice C++ developer without COM experience.
 
 ## CQG API Facade Test
