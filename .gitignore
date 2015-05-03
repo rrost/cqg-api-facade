@@ -24,6 +24,9 @@
 *.tlh
 *.tlb
 *.lastbuildstate
+*.res
+*.manifest
+*_manifest.rc
 
 # Compiled Dynamic libraries
 *.so
