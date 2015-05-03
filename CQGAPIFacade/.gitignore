@@ -1,0 +1,5 @@
+# Ignore non-source directories
+obj/
+bin/
+lib/
+ipch/
