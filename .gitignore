@@ -7,6 +7,23 @@
 # Precompiled Headers
 *.gch
 *.pch
+*.ipch
+
+# VS IDE files
+*.suo
+*.sdf
+*.opensdf
+*.idb
+*.pdb
+*.bsc
+*.user
+*.ilk
+*.log
+*.tlog
+*.tli
+*.tlh
+*.tlb
+*.lastbuildstate
 
 # Compiled Dynamic libraries
 *.so
