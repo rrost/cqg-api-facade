@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.h
-/// @brief Simple C++ facade for CQG API, v0.7.
+/// @brief Simple C++ facade for CQG API, v0.8.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
