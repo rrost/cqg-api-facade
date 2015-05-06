@@ -23,6 +23,7 @@ public:
 private:
    CWnd* m_console;          ///< Console edit box
    cqg::IAPIFacadePtr m_api; ///< API Facade
+   CString m_stpOrderGuid;   ///< Stop order guid.
 
    /// @brief Writes string to console
    /// @param msg [in] mesage to console

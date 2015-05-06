@@ -189,12 +189,15 @@ void CCQGAPIFacadeTestDlg::OnSymbolSubscribed(const CString& requestedSymbol, co
       ", account " + accs.front().gwAccountName + 
       ", order GUID: " + lmtGuid);
 
-   const CString stpGuid = m_api->PlaceOrder(cqg::StopLimit, accs.front().gwAccountID, symbol.fullName, true, 1, "My Dirty Order", 51.90, 52.0);
+   const CString stpGuid = m_api->PlaceOrder(cqg::StopLimit, accs.front().gwAccountID,
+      symbol.fullName, true, 1, "My Dirty Order", 60.54, 60.50);
    if(stpGuid.IsEmpty())
    {
       writeLn("Unable to place order: " + m_api->GetLastError());
       return;
    }
+
+   m_stpOrderGuid = stpGuid;
 
    writeLn("Placed STP order on " + symbol.fullName + 
       ", account " + accs.front().gwAccountName + 
@@ -270,18 +273,32 @@ void CCQGAPIFacadeTestDlg::OnPositionChanged(const cqg::AccountInfo& account,
 void CCQGAPIFacadeTestDlg::OnOrderChanged(const cqg::OrderInfo& order)
 {
    CString orderStr;
-   orderStr.Format("[ORDER] %s: %s, filled qty %d of %d, description: %s, GW ID: %s",
+   orderStr.Format("[ORDER] %s: %s, filled qty %d of %d, description: %s, GW ID: %s, GUID: %s",
       order.symbol.GetString(),
       order.final ? "closed" : "working",
       order.filledQty,
       order.quantity,
       order.description.GetString(),
-      order.gwOrderID.GetString());
+      order.gwOrderID.GetString(),
+      order.orderGuid.GetString());
 
    writeLn(orderStr);
 
    if(!order.error.IsEmpty())
    {
       writeLn("[ORDER] " + order.error);
+   }
+
+   if(order.orderGuid == m_stpOrderGuid)
+   {
+      if(!m_api->CancelOrder(m_stpOrderGuid))
+      {
+         writeLn("[ORDER] Unable to cancel order " + m_stpOrderGuid + ": " + m_api->GetLastError());
+      }
+      else
+      {
+         writeLn("[ORDER] cancel requested for " + m_stpOrderGuid);
+         m_stpOrderGuid.Empty();
+      }
    }
 }

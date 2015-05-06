@@ -921,6 +921,45 @@ struct IAPIFacadeImpl: IAPIFacade
       return CString(orderGuid);
    }
 
+   virtual bool CancelOrder(const CString& orderGuid)
+   {
+      CHECK_CEL_INIT(false);
+
+      ATL::CComPtr<ICQGOrders> spOrders;
+      HRESULT hr = m_api->m_spCQGCEL->get_Orders(&spOrders);
+      CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, false);
+
+      ATL::CComBSTR bstrOrderGuid(orderGuid);
+      ATL::CComPtr<ICQGOrder> spOrder;
+      hr = spOrders->get_ItemByGuid(bstrOrderGuid, &spOrder);
+      if(hr == S_FALSE)
+      {
+         m_lastError = "Order with given guid not found.";
+         return false;
+      }
+
+      CHECK_CEL_OBJ_RESULT(spOrders, hr, false);
+
+      if(!spOrder)
+      {
+         m_lastError = "CQGOrder object is NULL.";
+         return false;
+      }
+
+      VARIANT_BOOL canBeCanceled = VARIANT_FALSE;
+      spOrder->get_CanBeCanceled(&canBeCanceled);
+      if(canBeCanceled == VARIANT_FALSE)
+      {
+         m_lastError = "Order cannot be cancelled.";
+         return false;
+      }
+
+      hr = spOrder->Cancel();
+      CHECK_CEL_OBJ_RESULT(spOrder, hr, false);
+
+      return true;
+   }
+
    std::auto_ptr<CQGCELWrapper> m_api;
    CString m_lastError;
 
