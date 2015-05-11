@@ -55,4 +55,6 @@ private:
 
    // Generated message map functions
    DECLARE_MESSAGE_MAP()
+public:
+   afx_msg void OnBnClickedCancelAll();
 };

@@ -21,6 +21,7 @@ CCQGAPIFacadeTestDlg::CCQGAPIFacadeTestDlg(CWnd* pParent /*=NULL*/)
 }
 
 BEGIN_MESSAGE_MAP(CCQGAPIFacadeTestDlg, CDialog)
+   ON_BN_CLICKED(IDC_CANCEL_ALL, &CCQGAPIFacadeTestDlg::OnBnClickedCancelAll)
 END_MESSAGE_MAP()
 
 // CCQGAPIFacadeTestDlg message handlers
@@ -31,7 +32,7 @@ BOOL CCQGAPIFacadeTestDlg::OnInitDialog()
    m_console = GetDlgItem(IDC_CONSOLE);
    ASSERT(m_console);
 
-   writeLn("CQG API Facade v0.7");
+   writeLn("CQG API Facade v0.9");
    writeLn("Copyright (c) 2015 by Rostislav Ostapenko (rostislav.ostapenko@gmail.com)");
    writeLn("---------------------------------------------------------------------------------------------");
 
@@ -190,7 +191,7 @@ void CCQGAPIFacadeTestDlg::OnSymbolSubscribed(const CString& requestedSymbol, co
       ", order GUID: " + lmtGuid);
 
    const CString stpGuid = m_api->PlaceOrder(cqg::StopLimit, accs.front().gwAccountID,
-      symbol.fullName, true, 1, "My Dirty Order", 60.54, 60.50);
+      symbol.fullName, true, 1, "Stop to Cancel", 60.54, 60.50);
    if(stpGuid.IsEmpty())
    {
       writeLn("Unable to place order: " + m_api->GetLastError());
@@ -202,6 +203,18 @@ void CCQGAPIFacadeTestDlg::OnSymbolSubscribed(const CString& requestedSymbol, co
    writeLn("Placed STP order on " + symbol.fullName + 
       ", account " + accs.front().gwAccountName + 
       ", order GUID: " + stpGuid);
+
+   const CString stpGuid2 = m_api->PlaceOrder(cqg::StopLimit, accs.front().gwAccountID,
+      symbol.fullName, true, 1, "Order To Cancel 2", 60.54, 60.50);
+   if(stpGuid2.IsEmpty())
+   {
+      writeLn("Unable to place order: " + m_api->GetLastError());
+      return;
+   }
+
+   writeLn("Placed STP order on " + symbol.fullName + 
+      ", account " + accs.front().gwAccountName + 
+      ", order GUID: " + stpGuid2);
 }
 
 void CCQGAPIFacadeTestDlg::OnSymbolError(const CString& symbol)
@@ -300,5 +313,13 @@ void CCQGAPIFacadeTestDlg::OnOrderChanged(const cqg::OrderInfo& order)
          writeLn("[ORDER] cancel requested for " + m_stpOrderGuid);
          m_stpOrderGuid.Empty();
       }
+   }
+}
+
+void CCQGAPIFacadeTestDlg::OnBnClickedCancelAll()
+{
+   if(!m_api->CancelAllOrders())
+   {
+      writeLn("[ORDER] Unable to cancel all orders: " + m_api->GetLastError());
    }
 }

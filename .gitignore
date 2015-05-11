@@ -10,6 +10,7 @@
 *.ipch
 
 # VS IDE files
+*.aps
 *.suo
 *.sdf
 *.opensdf
@@ -32,6 +33,7 @@
 *.so
 *.dylib
 *.dll
+*.ocx
 
 # Fortran module files
 *.mod

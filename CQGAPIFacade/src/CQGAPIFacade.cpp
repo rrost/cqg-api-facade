@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.cpp
-/// @brief Simple C++ facade for CQG API, v0.8 - implementation.
+/// @brief Simple C++ facade for CQG API, v0.9 - implementation.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -956,6 +956,42 @@ struct IAPIFacadeImpl: IAPIFacade
 
       hr = spOrder->Cancel();
       CHECK_CEL_OBJ_RESULT(spOrder, hr, false);
+
+      return true;
+   }
+
+   virtual bool CancelAllOrders(
+      const ID& gwAccountID,
+      const CString& symbolFullName)
+   {
+      CHECK_CEL_INIT(false);
+
+      ATL::CComPtr<ICQGAccount> spAccount;
+      ATL::CComPtr<ICQGInstrument> spInstrument;
+      HRESULT hr = S_OK;
+
+      if(gwAccountID)
+      {
+         ATL::CComPtr<ICQGAccounts> spAccounts;
+         hr = m_api->m_spCQGCEL->get_Accounts(&spAccounts);
+         CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, false);
+
+         hr = spAccounts->get_Item(gwAccountID, &spAccount);
+         CHECK_CEL_OBJ_RESULT(spAccounts, hr, false);
+      }
+
+      if(!symbolFullName.IsEmpty())
+      {
+         ATL::CComPtr<ICQGInstruments> spInstruments;
+         hr = m_api->m_spCQGCEL->get_Instruments(&spInstruments);
+         CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, false);
+
+         spInstruments->get_Item(ATL::CComVariant(symbolFullName.GetString()), &spInstrument);
+         CHECK_CEL_OBJ_RESULT(spInstruments, hr, false);
+      }
+
+      hr = m_api->m_spCQGCEL->CancelAllOrders(spAccount, spInstrument, VARIANT_FALSE, VARIANT_FALSE, osdUndefined);
+      CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, false);
 
       return true;
    }

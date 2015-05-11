@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.h
-/// @brief Simple C++ facade for CQG API, v0.8.
+/// @brief Simple C++ facade for CQG API, v0.9.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -268,6 +268,14 @@ struct IAPIFacade
    /// @param orderGuid [in] order guid.
    /// @return True if order can be canceled, false otherwise.
    virtual bool CancelOrder(const CString& orderGuid) = 0;
+
+   /// @brief Cancels all orders within given account and symbol.
+   /// @param gwAccountID [in] account ID. If zero orders for all accounts are canceled.
+   /// @param symbolFullName [in] symbol name. If empty orders for all symbols are canceled.
+   /// @return True if orders cancel query successful, false otherwise.
+   virtual bool CancelAllOrders(
+      const ID& gwAccountID = 0,
+      const CString& symbolFullName = CString()) = 0;
 
    /// @brief Destructor, must be virtual
    virtual ~IAPIFacade() {}
