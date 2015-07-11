@@ -21,22 +21,26 @@ public:
 
 // Implementation
 private:
-   CWnd* m_console;          ///< Console edit box
-   cqg::IAPIFacadePtr m_api; ///< API Facade
+   CWnd* m_console;          ///< Console edit box.
+   cqg::IAPIFacadePtr m_api; ///< API Facade.
    CString m_stpOrderGuid;   ///< Stop order guid.
+   cqg::ID m_gwAccID;        ///< Main GW account ID used.
 
-   /// @brief Writes string to console
-   /// @param msg [in] mesage to console
+   /// @brief Writes string to console.
+   /// @param msg [in] mesage to console.
    void write(const CString& msg);
 
-   /// @brief Writes string to console and adds new line
-   /// @param msg [in] mesage to console
+   /// @brief Writes string to console and adds new line.
+   /// @param msg [in] mesage to console.
    void writeLn(const CString& msg);
 
-   /// @brief Dialog initialization
+   /// @brief Prints working orders to console.
+   void printWorkingOrders();
+
+   /// @brief Dialog initialization.
    virtual BOOL OnInitDialog();
 
-   /// @name IAPIEvents implementation
+   /// @name IAPIEvents implementation.
    /// @{
 
    virtual void OnError(const CString& error);
@@ -53,7 +57,7 @@ private:
 
    /// @}
 
-   // Generated message map functions
+   // Generated message map functions.
    DECLARE_MESSAGE_MAP()
 public:
    afx_msg void OnBnClickedCancelAll();

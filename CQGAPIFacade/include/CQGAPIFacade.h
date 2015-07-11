@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.h
-/// @brief Simple C++ facade for CQG API, v0.9.
+/// @brief Simple C++ facade for CQG API, v0.10.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -208,6 +208,13 @@ private:
 /// @brief Available order types
 enum OrderType { Market, Limit, Stop, StopLimit };
 
+/// @brief facade version numbers.
+struct FacadeVersion
+{
+   unsigned char m_major;
+   unsigned char m_minor;
+};
+
 /// @class IAPIFacade
 /// @brief Interface of CQG API Facade instance.
 struct IAPIFacade
@@ -215,6 +222,10 @@ struct IAPIFacade
    /// @brief Creates IAPIFacade implementing instance.
    /// @return IAPIFacade instance.
    static IAPIFacadePtr Create();
+
+   /// @brief Gets IAPIFacade version.
+   /// @return IAPIFacade version.
+   static FacadeVersion GetVersion();
 
    /// @brief Checks whether IAPIFacade instance is valid.
    /// @return True if valid, false otherwise.
@@ -247,6 +258,16 @@ struct IAPIFacade
    /// @param positions [out] open positions.
    virtual bool GetPositions(const ID& gwAccountID, Positions& positions) = 0;
 
+   /// @brief Requests number of all working orders for given account.
+   /// @param gwAccountID [in] account ID. If zero orders for all accounts are counted.
+   /// @return Number of all working orders.
+   virtual int GetAllWorkingOrdersCount(const ID& gwAccountID = ID()) = 0;
+
+   /// @brief Requests number of working orders placed by this CQG API instance for given account.
+   /// @param gwAccountID [in] account ID. If zero orders for all accounts are counted.
+   /// @return Number of internal working orders.
+   virtual int GetInternalWorkingOrdersCount(const ID& gwAccountID = ID()) = 0;
+
    /// @brief Places DAY order.
    /// @param gwAccountID [in] Gateway account ID to place order.
    /// @param symbol [in] CQG symbol full name to place order.
@@ -274,7 +295,7 @@ struct IAPIFacade
    /// @param symbolFullName [in] symbol name. If empty orders for all symbols are canceled.
    /// @return True if orders cancel query successful, false otherwise.
    virtual bool CancelAllOrders(
-      const ID& gwAccountID = 0,
+      const ID& gwAccountID = ID(),
       const CString& symbolFullName = CString()) = 0;
 
    /// @brief Destructor, must be virtual

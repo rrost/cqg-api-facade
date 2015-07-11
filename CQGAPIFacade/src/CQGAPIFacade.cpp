@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.cpp
-/// @brief Simple C++ facade for CQG API, v0.9 - implementation.
+/// @brief Simple C++ facade for CQG API, v0.10 - implementation.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -235,6 +235,30 @@ void GetAllQuotes(ICQGQuotes* quotes, SymbolInfo& symInfo)
          symInfo.lastQuotes.push_back(quote);
       }
    }
+}
+
+int GetWorkingOrders(ICQGOrders* orders)
+{
+   if(!orders)
+   {
+      return 0;
+   }
+
+   int count = 0;
+   CComCollection<ICQGOrders, ICQGOrder> q(orders);
+   while(!q.IsEnd())
+   {
+      ATL::CComVariant v = q.GetNext();
+      if(q.IsEnd()) break;
+
+      ATL::CComQIPtr<ICQGOrder> spOrder = v.pdispVal;
+      VARIANT_BOOL state = VARIANT_FALSE;
+      spOrder->get_IsFinal(&state);
+
+      if(state == VARIANT_FALSE) ++count;
+   }
+
+   return count;
 }
 
 void GetAccountInfo(ICQGAccount* acc, ICQGAccountSummary* accSum, AccountInfo& account)
@@ -821,22 +845,33 @@ struct IAPIFacadeImpl: IAPIFacade
       return true;
    }
 
+   typedef ATL::CComPtr<ICQGAccount> ICQGAccountPtr;
+
+   ICQGAccountPtr getAccount(const ID& gwAccountID)
+   {
+      ICQGAccountPtr spAccount;
+
+      ATL::CComPtr<ICQGAccounts> spAccounts;
+      HRESULT hr = m_api->m_spCQGCEL->get_Accounts(&spAccounts);
+      CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, spAccount);
+
+      hr = spAccounts->get_Item(gwAccountID, &spAccount);
+      CHECK_CEL_OBJ_RESULT(spAccounts, hr, spAccount);
+
+      return spAccount;
+   }
+
    virtual bool GetPositions(const ID& gwAccountID, Positions& positions)
    {
       positions.clear();
 
       CHECK_CEL_INIT(false);
 
-      ATL::CComPtr<ICQGAccounts> spAccounts;
-      HRESULT hr = m_api->m_spCQGCEL->get_Accounts(&spAccounts);
-      CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, false);
-
-      ATL::CComPtr<ICQGAccount> spAccount;
-      hr = spAccounts->get_Item(gwAccountID, &spAccount);
-      CHECK_CEL_OBJ_RESULT(spAccounts, hr, false);
+      ICQGAccountPtr spAccount = getAccount(gwAccountID);
+      if(!spAccount) return false;
 
       ATL::CComPtr<ICQGPositions> spPositions;
-      hr = spAccount->get_Positions(&spPositions);
+      HRESULT hr = spAccount->get_Positions(&spPositions);
       CHECK_CEL_OBJ_RESULT(spAccount, hr, false);
 
       long count = 0;
@@ -855,6 +890,54 @@ struct IAPIFacadeImpl: IAPIFacade
       }
 
       return true;
+   }
+
+   typedef ATL::CComPtr<ICQGOrders> ICQGOrdersPtr;
+
+   virtual int GetAllWorkingOrdersCount(const ID& gwAccountID)
+   {
+      CHECK_CEL_INIT(0);
+
+      ICQGOrdersPtr spOrders;
+
+      if(gwAccountID == ID())
+      {
+         HRESULT hr = m_api->m_spCQGCEL->get_Orders(&spOrders);
+         CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, 0);
+      }
+      else
+      {
+         ICQGAccountPtr spAccount = getAccount(gwAccountID);
+         if(!spAccount) return 0;
+
+         HRESULT hr = spAccount->get_Orders(&spOrders);
+         CHECK_CEL_OBJ_RESULT(spAccount, hr, 0);
+      }
+
+      return GetWorkingOrders(spOrders);
+   }
+
+   virtual int GetInternalWorkingOrdersCount(const ID& gwAccountID)
+   {
+      CHECK_CEL_INIT(0);
+
+      ICQGOrdersPtr spOrders;
+
+      if(gwAccountID == ID())
+      {
+         HRESULT hr = m_api->m_spCQGCEL->get_InternalOrders(&spOrders);
+         CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, 0);
+      }
+      else
+      {
+         ICQGAccountPtr spAccount = getAccount(gwAccountID);
+         if(!spAccount) return 0;
+
+         HRESULT hr = spAccount->get_InternalOrders(&spOrders);
+         CHECK_CEL_OBJ_RESULT(spAccount, hr, 0);
+      }
+
+      return GetWorkingOrders(spOrders);
    }
 
    virtual CString PlaceOrder(
@@ -1004,6 +1087,12 @@ struct IAPIFacadeImpl: IAPIFacade
 IAPIFacadePtr IAPIFacade::Create()
 {
    return IAPIFacadePtr(new IAPIFacadeImpl());
+}
+
+FacadeVersion IAPIFacade::GetVersion()
+{
+   const FacadeVersion version = { 0, 10 };
+   return version;
 }
 
 } // namespace cqg

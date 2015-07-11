@@ -17,6 +17,7 @@ CCQGAPIFacadeTestDlg::CCQGAPIFacadeTestDlg(CWnd* pParent /*=NULL*/)
    : CDialog(CCQGAPIFacadeTestDlg::IDD, pParent)
    , m_console(NULL)
    , m_api(cqg::IAPIFacade::Create())
+   , m_gwAccID()
 {
 }
 
@@ -32,7 +33,14 @@ BOOL CCQGAPIFacadeTestDlg::OnInitDialog()
    m_console = GetDlgItem(IDC_CONSOLE);
    ASSERT(m_console);
 
-   writeLn("CQG API Facade v0.9");
+   const cqg::FacadeVersion version = cqg::IAPIFacade::GetVersion();
+
+   CString verStr;
+   verStr.Format("CQG API Facade v%d.%d",
+      version.m_major,
+      version.m_minor);
+
+   writeLn(verStr);
    writeLn("Copyright (c) 2015 by Rostislav Ostapenko (rostislav.ostapenko@gmail.com)");
    writeLn("---------------------------------------------------------------------------------------------");
 
@@ -41,6 +49,7 @@ BOOL CCQGAPIFacadeTestDlg::OnInitDialog()
    if(m_api->IsValid())
    {
       writeLn("CQG API initialized successfully!");
+      printWorkingOrders();
    }
    else
    {
@@ -64,6 +73,16 @@ void CCQGAPIFacadeTestDlg::write(const CString& msg)
 void CCQGAPIFacadeTestDlg::writeLn(const CString& msg)
 {
    write(msg + "\r\n");
+}
+
+void CCQGAPIFacadeTestDlg::printWorkingOrders()
+{
+   CString str;
+   str.Format("Working orders count (all/internal): %d/%d",
+      m_api->GetAllWorkingOrdersCount(m_gwAccID),
+      m_api->GetInternalWorkingOrdersCount(m_gwAccID));
+
+   writeLn(str);
 }
 
 void CCQGAPIFacadeTestDlg::OnError(const CString& error)
@@ -129,6 +148,8 @@ void CCQGAPIFacadeTestDlg::OnSymbolSubscribed(const CString& requestedSymbol, co
       writeLn("No accounts available, ensure trading server connection is UP");
       return;
    }
+
+   m_gwAccID = accs.front().gwAccountID;
 
    // Print out available accounts
    for(size_t i = 0; i < accs.size(); ++i)
@@ -285,6 +306,8 @@ void CCQGAPIFacadeTestDlg::OnPositionChanged(const cqg::AccountInfo& account,
 
 void CCQGAPIFacadeTestDlg::OnOrderChanged(const cqg::OrderInfo& order)
 {
+   printWorkingOrders();
+
    CString orderStr;
    orderStr.Format("[ORDER] %s: %s, filled qty %d of %d, description: %s, GW ID: %s, GUID: %s",
       order.symbol.GetString(),
@@ -318,6 +341,8 @@ void CCQGAPIFacadeTestDlg::OnOrderChanged(const cqg::OrderInfo& order)
 
 void CCQGAPIFacadeTestDlg::OnBnClickedCancelAll()
 {
+   printWorkingOrders();
+
    if(!m_api->CancelAllOrders())
    {
       writeLn("[ORDER] Unable to cancel all orders: " + m_api->GetLastError());
