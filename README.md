@@ -38,6 +38,7 @@ order placing & tracking.
 CQG API is supplied as a part of the CQGIC package. In order for CQG API to work, CQGIC should be started on the computer.
 
 ## More info: 
-- API Resources http://partners.cqg.com/api-resources
+- CQG Integrated Client (CQGIC): http://cqg.com/products/cqg-integrated-client
+- API Resources: http://partners.cqg.com/api-resources
 - API Tech Docs: http://partners.cqg.com/api-resources/technical-documentation
 - API Samples: http://partners.cqg.com/api-resources/cqg-data-and-trading-apis
