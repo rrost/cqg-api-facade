@@ -37,6 +37,10 @@ private:
    /// @brief Prints working orders to console.
    void printWorkingOrders();
 
+   /// @brief Requests hour OHLC bars past 24 hours for given symbol.
+   /// @return Bars request guid if success, empty string if failed.
+   CString requestBarsPast24Hours(const CString& symbol);
+
    /// @brief Dialog initialization.
    virtual BOOL OnInitDialog();
 

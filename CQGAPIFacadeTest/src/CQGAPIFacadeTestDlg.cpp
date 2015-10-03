@@ -85,6 +85,21 @@ void CCQGAPIFacadeTestDlg::printWorkingOrders()
    writeLn(str);
 }
 
+CString CCQGAPIFacadeTestDlg::requestBarsPast24Hours(const CString& symbol)
+{
+   // Get current line time.
+   const COleDateTime lineTime = m_api->GetLineTime();
+
+   // Start range one day past current line time.
+   const COleDateTime barsStart = lineTime - COleDateTimeSpan(1, 0, 0, 0);
+
+   // End range one minute past start.
+   const COleDateTime barsEnd = barsStart + COleDateTimeSpan(0, 0, 1, 0);
+
+   const cqg::BarsRequest barsReq = { symbol, barsStart, barsEnd, 60 };
+   return m_api->RequestBars(barsReq);
+}
+
 void CCQGAPIFacadeTestDlg::OnError(const CString& error)
 {
    AfxMessageBox("CEL Error: " + error);
@@ -113,8 +128,7 @@ void CCQGAPIFacadeTestDlg::OnMarketDataConnection(const bool connected)
    writeLn("Requesting EP bars from " +
       barsStart.Format("%Y-%m-%d %H:%M:%S") + " to " + barsEnd.Format("%Y-%m-%d %H:%M:%S"));
 
-   const cqg::BarsRequest barsReq = { "EP", barsStart, barsEnd, 60 };
-   const CString barReqID = m_api->RequestBars(barsReq);
+   const CString barReqID = requestBarsPast24Hours("EP");
 
    if(barReqID.IsEmpty())
    {

@@ -1241,7 +1241,7 @@ IAPIFacadePtr IAPIFacade::Create()
 
 FacadeVersion IAPIFacade::GetVersion()
 {
-   const FacadeVersion version = { 0, 11 };
+   const FacadeVersion version = { 0, 12 };
    return version;
 }
 
