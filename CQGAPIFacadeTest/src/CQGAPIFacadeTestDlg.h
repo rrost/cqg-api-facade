@@ -54,7 +54,7 @@ private:
    virtual void OnAccountChanged(const cqg::AccountInfo& account);
    virtual void OnPositionChanged(const cqg::AccountInfo& account, const cqg::PositionInfo& position, const bool newPosition);
    virtual void OnOrderChanged(const cqg::OrderInfo& order);
-
+   virtual void OnBarsReceived(const cqg::Bars& bars);
    /// @}
 
    // Generated message map functions.

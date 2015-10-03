@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.h
-/// @brief Simple C++ facade for CQG API, v0.11.
+/// @brief Simple C++ facade for CQG API, v0.12.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -104,6 +104,35 @@ typedef std::vector<AccountInfo> Accounts;
 typedef std::vector<PositionInfo> Positions;
 typedef std::vector<SymbolInfo> Symbols;
 
+/// @brief Timed bars request definition.
+struct BarsRequest
+{
+   CString symbol;               ///< Symbol to request bars.
+   COleDateTime rangeStart;      ///< Bars range start (Line Time).
+   COleDateTime rangeEnd;        ///< Bars range end (Line Time).
+   long intradayPeriodInMinutes; ///< Intraday period in minutes for bars, e.g. 60 for hourly bars.
+};
+
+/// @brief Timed bar information.
+struct BarInfo
+{
+   COleDateTime timestamp;  ///< Bar timestamp.
+   Price open;              ///< Open price.
+   Price high;              ///< High price.
+   Price low;               ///< Low price.
+   Price close;             ///< Close price.
+};
+
+typedef std::vector<BarInfo> BarInfos;
+
+/// @brief Timed bars request result.
+struct Bars
+{
+   CString requestGuid; ///< Timed bars request guid.
+   CString error;       ///< Error description, empty if no error.
+   BarInfos bars;       ///< Received bars.
+};
+
 /// @class IAPIEvents
 /// @brief Interface for processing CQG API Facade events.
 /// @note Must be implemented by user and passed to IAPIFacade::Initialize() to receive events.
@@ -159,6 +188,10 @@ struct IAPIEvents
    /// @brief Called when order status update occurred.
    /// @param order [in] order info.
    virtual void OnOrderChanged(const OrderInfo& order) = 0;
+
+   /// @brief Called when order status update occurred.
+   /// @param bars [in] received bars info.
+   virtual void OnBarsReceived(const Bars& bars) = 0;
 
    /// @brief Destructor, must be virtual.
    virtual ~IAPIEvents() {}
@@ -217,6 +250,12 @@ struct FacadeVersion
    unsigned char m_minor;
 };
 
+/// @brief Checks is date/time object has valid status.
+inline bool IsValidDateTime(const COleDateTime& dateTime)
+{
+   return dateTime.GetStatus() == COleDateTime::valid;
+}
+
 /// @class IAPIFacade
 /// @brief Interface of CQG API Facade instance.
 struct IAPIFacade
@@ -245,6 +284,11 @@ struct IAPIFacade
    /// @param symbol [in] symbol to resolve
    ///        Note: it can differ from full name, e.g. "EP" will be re.solved to something like "F.US.EPH5".
    virtual bool RequestSymbol(const CString& symbol) = 0;
+
+   /// @brief Requests timed bars.
+   /// @param barsRequest [in] bars request definition.
+   /// @return Placed bar request guid or empty string if failed.
+   virtual CString RequestBars(const BarsRequest& barsRequest) = 0;
 
    /// @brief Performs logon to CQG Gateway with given user and password.
    /// @param user [in] user name.
@@ -281,7 +325,7 @@ struct IAPIFacade
    /// @param buy [in] is order side is buy (true) or sell (false).
    /// @param quantity [in] order quantity.
    /// @param description [in] order user description.
-   /// @return Placed order guid.
+   /// @return Placed order guid or empty string if failed.
    virtual CString PlaceOrder(
       OrderType type,
       const ID& gwAccountID,

@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.cpp
-/// @brief Simple C++ facade for CQG API, v0.11 - implementation.
+/// @brief Simple C++ facade for CQG API, v0.12 - implementation.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -628,6 +628,8 @@ private:
             eFillStatus status = fsNormal;
             fill->get_Status(&status);
 
+            orderInfo.orderFills.reserve(legCount);
+
             for(long i = 0; i < legCount; ++i)
             {
                FillInfo fillInfo;
@@ -660,11 +662,54 @@ private:
 
    STDMETHOD(OnTimedBarsResolved)(
       ICQGTimedBars* cqgTimedBars,
-      CQGError* cqgerr)
+      ICQGError* cqgerr)
    {
       ATLTRACE("CQGCEL::OnTimedBarsResolved\n");
 
-      cqgTimedBars; cqgerr;
+      if(m_events)
+      {
+         ATL::CComBSTR requestID;
+         Bars bars;
+
+         cqgTimedBars->get_Id(&requestID);
+         bars.requestGuid = CString(requestID);
+
+         if(checkValid(cqgerr))
+         {
+            ATL::CComBSTR errorDesc;
+            cqgerr->get_Description(&errorDesc);
+            bars.error = errorDesc;
+         }
+
+         eRequestStatus status;
+         cqgTimedBars->get_Status(&status);
+         if(bars.error.IsEmpty() && status != rsSuccess)
+         {
+            bars.error = "Bars request failed, cancelled or pending.";
+         }
+
+         long barCount = 0;
+         cqgTimedBars->get_Count(&barCount);
+
+         bars.bars.reserve(barCount);
+
+         for(long i = 0; i < barCount; ++i)
+         {
+            ATL::CComPtr<ICQGTimedBar> spBar;
+            cqgTimedBars->get_Item(i, &spBar);
+
+            BarInfo bar;
+            spBar->get_Timestamp(&bar.timestamp.m_dt);
+            spBar->get_Open(&bar.open);
+            spBar->get_High(&bar.high);
+            spBar->get_Low(&bar.low);
+            spBar->get_Close(&bar.close);
+
+            bars.bars.push_back(bar);
+         }
+
+         m_events->OnBarsReceived(bars);
+      }
 
       return S_OK;
    }
@@ -855,6 +900,38 @@ struct IAPIFacadeImpl: IAPIFacade
       RETURN_CEL_RESULT(m_api->m_spCQGCEL->NewInstrument(ATL::CComBSTR(symbol)));
    }
 
+   virtual CString RequestBars(const BarsRequest& barsRequest)
+   {
+      CHECK_CEL_INIT(CString());
+
+      ATL::CComPtr<ICQGTimedBarsRequest> spRequest;
+      HRESULT hr = m_api->m_spCQGCEL->CreateTimedBarsRequest(&spRequest);
+      CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, CString());
+
+      ATL::CComBSTR symbol(barsRequest.symbol);
+      hr = spRequest->put_Symbol(symbol);
+      CHECK_CEL_OBJ_RESULT(spRequest, hr, CString());
+
+      hr = spRequest->put_RangeStart(
+         ATL::CComVariant(barsRequest.rangeStart.m_dt, VT_DATE));
+      CHECK_CEL_OBJ_RESULT(spRequest, hr, CString());
+
+      hr = spRequest->put_RangeEnd(
+         ATL::CComVariant(barsRequest.rangeEnd.m_dt, VT_DATE));
+      CHECK_CEL_OBJ_RESULT(spRequest, hr, CString());
+
+      hr = spRequest->put_IntradayPeriod(barsRequest.intradayPeriodInMinutes);
+      CHECK_CEL_OBJ_RESULT(spRequest, hr, CString());
+
+      ATL::CComPtr<ICQGTimedBars> spTimedBars;
+      hr = m_api->m_spCQGCEL->RequestTimedBars(spRequest, &spTimedBars);
+      CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, CString());
+
+      ATL::CComBSTR requestID;
+      spTimedBars->get_Id(&requestID);
+      return CString(requestID);
+   }
+
    virtual bool LogonToGateway(const CString& user, const CString& password)
    {
       CHECK_CEL_INIT(false);
@@ -892,6 +969,8 @@ struct IAPIFacadeImpl: IAPIFacade
       long count = 0;
       hr = spAccounts->get_Count(&count);
       CHECK_CEL_OBJ_RESULT(spAccounts, hr, false);
+
+      accounts.reserve(count);
 
       for(long i = 0; i < count; ++i)
       {
@@ -946,6 +1025,8 @@ struct IAPIFacadeImpl: IAPIFacade
       long count = 0;
       hr = spPositions->get_Count(&count);
       CHECK_CEL_OBJ_RESULT(spPositions, hr, false);
+
+      positions.reserve(count);
 
       for(long i = 0; i < count; ++i)
       {

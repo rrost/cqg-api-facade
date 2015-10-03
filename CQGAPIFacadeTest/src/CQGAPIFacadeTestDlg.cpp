@@ -103,10 +103,27 @@ void CCQGAPIFacadeTestDlg::OnMarketDataConnection(const bool connected)
    }
 
    const COleDateTime lineTime = m_api->GetLineTime();
-   const CString lineTimeStr = lineTime.GetStatus() == COleDateTime::valid ?
-      lineTime.Format("%Y-%m-%d %H:%M:%S") : "N/A";
+   const CString lineTimeStr = cqg::IsValidDateTime(lineTime) ? lineTime.Format("%Y-%m-%d %H:%M:%S") : "N/A";
 
    writeLn("Current Line Time: " + lineTimeStr);
+
+   const COleDateTime barsStart = lineTime - COleDateTimeSpan(1, 0, 0, 0);
+   const COleDateTime barsEnd = barsStart + COleDateTimeSpan(0, 0, 1, 0);
+
+   writeLn("Requesting EP bars from " +
+      barsStart.Format("%Y-%m-%d %H:%M:%S") + " to " + barsEnd.Format("%Y-%m-%d %H:%M:%S"));
+
+   const cqg::BarsRequest barsReq = { "EP", barsStart, barsEnd, 60 };
+   const CString barReqID = m_api->RequestBars(barsReq);
+
+   if(barReqID.IsEmpty())
+   {
+      writeLn("Unable to request bars: " + m_api->GetLastError());
+   }
+   else
+   {
+      writeLn("Bar request ID: " + barReqID);
+   }
 }
 
 void CCQGAPIFacadeTestDlg::OnTradingConnection(const bool connected)
@@ -342,6 +359,26 @@ void CCQGAPIFacadeTestDlg::OnOrderChanged(const cqg::OrderInfo& order)
          writeLn("[ORDER] cancel requested for " + m_stpOrderGuid);
          m_stpOrderGuid.Empty();
       }
+   }
+}
+
+void CCQGAPIFacadeTestDlg::OnBarsReceived(const cqg::Bars& receivedBars)
+{
+   if(!receivedBars.error.IsEmpty())
+   {
+      writeLn("[BARS] Error: " + receivedBars.error);
+      return;
+   }
+
+   writeLn("[BARS] Request succeed: " + receivedBars.requestGuid);
+
+   const cqg::BarInfos& bars = receivedBars.bars;
+   for(size_t i = 0; i < bars.size(); ++i)
+   {
+      CString ohlcStr;
+      ohlcStr.Format(" OHLC %g/%g/%g/%g", bars[i].open, bars[i].high, bars[i].low, bars[i].close);
+
+      writeLn(" - " + bars[i].timestamp.Format("%Y-%m-%d %H:%M:%S") + ohlcStr);
    }
 }
 
