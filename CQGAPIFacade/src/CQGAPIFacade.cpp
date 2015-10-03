@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.cpp
-/// @brief Simple C++ facade for CQG API, v0.10 - implementation.
+/// @brief Simple C++ facade for CQG API, v0.11 - implementation.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -353,13 +353,22 @@ public:
    ///        or shown by "OLE/COM Object Viewer".
    BEGIN_SINK_MAP(CQGCELWrapper)
       SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 10, OnDataError)
-      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 2, OnGWConnectionStatusChanged)
-      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 3, OnDataConnectionStatusChanged)
-      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 7, OnAccountChanged)
-      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 4, OnInstrumentSubscribed)
-      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 5, OnInstrumentChanged)
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 2,  OnGWConnectionStatusChanged)
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 3,  OnDataConnectionStatusChanged)
+
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 7,  OnAccountChanged)
+
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 4,  OnInstrumentSubscribed)
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 5,  OnInstrumentChanged)
       SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 12, OnIncorrectSymbol)
+
       SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 17, OnOrderChanged)
+
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 24, OnTimedBarsResolved)
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 25, OnTimedBarsAdded)
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 26, OnTimedBarsUpdated)
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 57, OnTimedBarsInserted)
+      SINK_ENTRY_EX(1, __uuidof(_ICQGCELEvents), 58, OnTimedBarsRemoved)
    END_SINK_MAP()
 
 private:
@@ -649,6 +658,48 @@ private:
       return S_OK;
    }
 
+   STDMETHOD(OnTimedBarsResolved)(
+      ICQGTimedBars* cqgTimedBars,
+      CQGError* cqgerr)
+   {
+      ATLTRACE("CQGCEL::OnTimedBarsResolved\n");
+
+      cqgTimedBars; cqgerr;
+
+      return S_OK;
+   }
+
+   STDMETHOD(OnTimedBarsAdded)(
+      ICQGTimedBars* /*cqgTimedBars*/)
+   {
+      ATLTRACE("CQGCEL::OnTimedBarsAdded\n");
+      return S_OK;
+   }
+
+   STDMETHOD(OnTimedBarsUpdated)(
+      ICQGTimedBars* /*cqgTimedBars*/,
+      long /*barIndex*/)
+   {
+       ATLTRACE("CQGCEL::OnTimedBarsUpdated\n");
+       return S_OK;
+   }
+
+   STDMETHOD(OnTimedBarsInserted)(
+      ICQGTimedBars* /*cqgTimedBars*/,
+      long /*barIndex*/)
+   {
+      ATLTRACE("CQGCEL::OnTimedBarsInserted\n");
+      return S_OK;
+   }
+
+   STDMETHOD(OnTimedBarsRemoved)(
+      ICQGTimedBars* /*cqgTimedBars*/,
+      long /*barIndex*/)
+   {
+      ATLTRACE("CQGCEL::OnTimedBarsRemoved\n");
+      return S_OK;
+   }
+
 private:
 
    /// @brief Initializes CQGCEL object, starts the CQGCEL and subscribes to events.
@@ -804,11 +855,29 @@ struct IAPIFacadeImpl: IAPIFacade
       RETURN_CEL_RESULT(m_api->m_spCQGCEL->NewInstrument(ATL::CComBSTR(symbol)));
    }
 
-    virtual bool LogonToGateway(const CString& user, const CString& password)
-    {
-       CHECK_CEL_INIT(false);
-       RETURN_CEL_RESULT(m_api->m_spCQGCEL->GWLogon(ATL::CComBSTR(user), ATL::CComBSTR(password)));
-    }
+   virtual bool LogonToGateway(const CString& user, const CString& password)
+   {
+      CHECK_CEL_INIT(false);
+      RETURN_CEL_RESULT(m_api->m_spCQGCEL->GWLogon(ATL::CComBSTR(user), ATL::CComBSTR(password)));
+   }
+
+   virtual COleDateTime GetLineTime()
+   {
+      COleDateTime invalidTime;
+      invalidTime.SetStatus(COleDateTime::invalid);
+
+      ATL::CComPtr<ICQGEnvironment> spEnvironment;
+      HRESULT hr = m_api->m_spCQGCEL->get_Environment(&spEnvironment);
+      CHECK_CEL_OBJ_RESULT(m_api->m_spCQGCEL, hr, invalidTime);
+
+      DATE lineTime;
+      hr = spEnvironment->get_LineTime(&lineTime);
+      CHECK_CEL_OBJ_RESULT(spEnvironment, hr, invalidTime);
+
+      if(lineTime == 0.0) return invalidTime;
+
+      return COleDateTime(lineTime);
+   }
 
    virtual bool GetAccounts(Accounts& accounts)
    {
@@ -1091,7 +1160,7 @@ IAPIFacadePtr IAPIFacade::Create()
 
 FacadeVersion IAPIFacade::GetVersion()
 {
-   const FacadeVersion version = { 0, 10 };
+   const FacadeVersion version = { 0, 11 };
    return version;
 }
 

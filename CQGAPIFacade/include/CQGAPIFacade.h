@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.h
-/// @brief Simple C++ facade for CQG API, v0.10.
+/// @brief Simple C++ facade for CQG API, v0.11.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -7,6 +7,8 @@
 #pragma once
 
 #include <afx.h>
+#include <atlcomtime.h>
+
 #include <limits>
 #include <memory>
 #include <vector>
@@ -248,6 +250,11 @@ struct IAPIFacade
    /// @param user [in] user name.
    /// @param password [in] password.
    virtual bool LogonToGateway(const CString& user, const CString& password) = 0;
+
+   /// @brief Gets current CQG Line Time.
+   /// @return Current Line Time value or invalid date/time if error occurred or market data
+   ///         connection is down.
+   virtual COleDateTime GetLineTime() = 0;
 
    /// @brief Requests all available accounts.
    /// @param accounts [out] available accounts.

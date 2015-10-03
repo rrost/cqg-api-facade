@@ -26,3 +26,4 @@
 #include "targetver.h"
 #include <afx.h>
 #include <afxwin.h>         // MFC core and standard components
+#include <atlcomtime.h>     // COleDateTime

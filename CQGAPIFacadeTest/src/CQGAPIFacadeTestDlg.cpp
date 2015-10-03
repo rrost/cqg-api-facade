@@ -101,6 +101,12 @@ void CCQGAPIFacadeTestDlg::OnMarketDataConnection(const bool connected)
       AfxMessageBox("CQGIC exited or disconnected, please re-run.");
       PostQuitMessage(0);
    }
+
+   const COleDateTime lineTime = m_api->GetLineTime();
+   const CString lineTimeStr = lineTime.GetStatus() == COleDateTime::valid ?
+      lineTime.Format("%Y-%m-%d %H:%M:%S") : "N/A";
+
+   writeLn("Current Line Time: " + lineTimeStr);
 }
 
 void CCQGAPIFacadeTestDlg::OnTradingConnection(const bool connected)
