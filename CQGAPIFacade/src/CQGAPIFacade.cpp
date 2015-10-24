@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.cpp
-/// @brief Simple C++ facade for CQG API, v0.12 - implementation.
+/// @brief Simple C++ facade for CQG API, v0.13 - implementation.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -620,7 +620,7 @@ private:
          order->get_OriginalOrderID(&originOrderID);
          orderInfo.gwOrderID = originOrderID;
 
-         if(checkValid(fill))
+         if(checkValidPtr(fill))
          {
             long legCount = 0;
             fill->get_LegCount(&legCount);
@@ -647,7 +647,7 @@ private:
             }
          }
 
-         if(checkValid(cqgerr))
+         if(checkValidPtr(cqgerr))
          {
             ATL::CComBSTR errorDesc;
             cqgerr->get_Description(&errorDesc);
@@ -674,7 +674,7 @@ private:
          cqgTimedBars->get_Id(&requestID);
          bars.requestGuid = CString(requestID);
 
-         if(checkValid(cqgerr))
+         if(checkValidPtr(cqgerr))
          {
             ATL::CComBSTR errorDesc;
             cqgerr->get_Description(&errorDesc);
@@ -688,12 +688,12 @@ private:
             bars.error = "Bars request failed, cancelled or pending.";
          }
 
-         long barCount = 0;
-         cqgTimedBars->get_Count(&barCount);
+         bars.requestedCount = 0;
+         cqgTimedBars->get_Count(&bars.requestedCount);
 
-         bars.bars.reserve(barCount);
+         bars.bars.reserve(bars.requestedCount);
 
-         for(long i = 0; i < barCount; ++i)
+         for(long i = 0; i < bars.requestedCount; ++i)
          {
             ATL::CComPtr<ICQGTimedBar> spBar;
             cqgTimedBars->get_Item(i, &spBar);
@@ -704,6 +704,9 @@ private:
             spBar->get_High(&bar.high);
             spBar->get_Low(&bar.low);
             spBar->get_Close(&bar.close);
+
+            // Skip invalid bars.
+            if(!checkValid(bar.open)) continue;
 
             bars.bars.push_back(bar);
          }
@@ -811,13 +814,19 @@ private:
    }
 
    template <typename Interface>
-   bool checkValid(Interface* obj)
+   bool checkValidPtr(Interface* obj)
    {
       if(!obj)
       {
          return false;
       }
 
+      return checkValid(obj);
+   }
+
+   template <typename Object>
+   bool checkValid(Object obj)
+   {
       VARIANT_BOOL valid = VARIANT_FALSE;
       m_spCQGCEL->IsValid(ATL::CComVariant(obj), &valid);
       return (valid == VARIANT_TRUE);
@@ -912,15 +921,22 @@ struct IAPIFacadeImpl: IAPIFacade
       hr = spRequest->put_Symbol(symbol);
       CHECK_CEL_OBJ_RESULT(spRequest, hr, CString());
 
-      hr = spRequest->put_RangeStart(
-         ATL::CComVariant(barsRequest.rangeStart.m_dt, VT_DATE));
+      const ATL::CComVariant startRange = barsRequest.useIndexRange ?
+         ATL::CComVariant(barsRequest.startIndex) : ATL::CComVariant(barsRequest.startDate.m_dt, VT_DATE);
+
+      const ATL::CComVariant endRange = barsRequest.useIndexRange ?
+         ATL::CComVariant(barsRequest.endIndex) : ATL::CComVariant(barsRequest.endDate.m_dt, VT_DATE);
+
+      hr = spRequest->put_RangeStart(startRange);
       CHECK_CEL_OBJ_RESULT(spRequest, hr, CString());
 
-      hr = spRequest->put_RangeEnd(
-         ATL::CComVariant(barsRequest.rangeEnd.m_dt, VT_DATE));
+      hr = spRequest->put_RangeEnd(endRange);
       CHECK_CEL_OBJ_RESULT(spRequest, hr, CString());
 
       hr = spRequest->put_IntradayPeriod(barsRequest.intradayPeriodInMinutes);
+      CHECK_CEL_OBJ_RESULT(spRequest, hr, CString());
+
+      hr = spRequest->put_SessionsFilter(ATL::CComVariant(barsRequest.sessionsFilter));
       CHECK_CEL_OBJ_RESULT(spRequest, hr, CString());
 
       ATL::CComPtr<ICQGTimedBars> spTimedBars;
@@ -1241,7 +1257,7 @@ IAPIFacadePtr IAPIFacade::Create()
 
 FacadeVersion IAPIFacade::GetVersion()
 {
-   const FacadeVersion version = { 0, 12 };
+   const FacadeVersion version = { 0, 13 };
    return version;
 }
 

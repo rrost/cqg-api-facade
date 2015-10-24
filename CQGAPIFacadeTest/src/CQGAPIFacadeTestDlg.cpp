@@ -85,19 +85,24 @@ void CCQGAPIFacadeTestDlg::printWorkingOrders()
    writeLn(str);
 }
 
-CString CCQGAPIFacadeTestDlg::requestBarsPast24Hours(const CString& symbol)
+CString CCQGAPIFacadeTestDlg::requestBars(const CString& symbol, int barsCount)
 {
-   // Get current line time.
-   const COleDateTime lineTime = m_api->GetLineTime();
+   const cqg::BarsRequest barsReq =
+   {
+      symbol,
+      true,
+      COleDateTime(),
+      COleDateTime(),
+      0,
+      -barsCount,
+      30, // 30 minutes bars
+      cqg::BarsRequest::UseAllSessions 
+   };
 
-   // Start range one day past current line time.
-   const COleDateTime barsStart = lineTime - COleDateTimeSpan(1, 0, 0, 0);
+   const CString reqID = m_api->RequestBars(barsReq);
+   if(!reqID.IsEmpty()) m_barReqSymbols[reqID] = symbol;
 
-   // End range one minute past start.
-   const COleDateTime barsEnd = barsStart + COleDateTimeSpan(0, 0, 1, 0);
-
-   const cqg::BarsRequest barsReq = { symbol, barsStart, barsEnd, 60 };
-   return m_api->RequestBars(barsReq);
+   return reqID;
 }
 
 void CCQGAPIFacadeTestDlg::OnError(const CString& error)
@@ -122,21 +127,19 @@ void CCQGAPIFacadeTestDlg::OnMarketDataConnection(const bool connected)
 
    writeLn("Current Line Time: " + lineTimeStr);
 
-   const COleDateTime barsStart = lineTime - COleDateTimeSpan(1, 0, 0, 0);
-   const COleDateTime barsEnd = barsStart + COleDateTimeSpan(0, 0, 1, 0);
+   writeLn("Requesting hour EP and CLE bars...");
 
-   writeLn("Requesting EP bars from " +
-      barsStart.Format("%Y-%m-%d %H:%M:%S") + " to " + barsEnd.Format("%Y-%m-%d %H:%M:%S"));
+   const CString barReqID1 = requestBars("EP", 48);
+   const CString barReqID2 = requestBars("CLE", 48);
 
-   const CString barReqID = requestBarsPast24Hours("EP");
-
-   if(barReqID.IsEmpty())
+   if(barReqID1.IsEmpty() || barReqID2.IsEmpty())
    {
       writeLn("Unable to request bars: " + m_api->GetLastError());
    }
    else
    {
-      writeLn("Bar request ID: " + barReqID);
+      writeLn("Bar request ID: " + barReqID1);
+      writeLn("Bar request ID: " + barReqID2);
    }
 }
 
@@ -378,16 +381,27 @@ void CCQGAPIFacadeTestDlg::OnOrderChanged(const cqg::OrderInfo& order)
 
 void CCQGAPIFacadeTestDlg::OnBarsReceived(const cqg::Bars& receivedBars)
 {
+   const CString symbol = m_barReqSymbols[receivedBars.requestGuid];
+   m_barReqSymbols.erase(receivedBars.requestGuid);
+
    if(!receivedBars.error.IsEmpty())
    {
-      writeLn("[BARS] Error: " + receivedBars.error);
+      writeLn("[BARS] Error requesting symbol " + symbol + ": " + receivedBars.error);
       return;
    }
 
-   writeLn("[BARS] Request succeed: " + receivedBars.requestGuid);
+   writeLn("[BARS] " + symbol + " request succeed: " + receivedBars.requestGuid);
 
+   if(receivedBars.bars.size() < 48)
+   {
+      writeLn("[BARS] Result contains less bars then required, re-requesting...");
+      requestBars(symbol, receivedBars.requestedCount * 2);
+      return;
+   }
+
+   // Use only last 48 bars.
    const cqg::BarInfos& bars = receivedBars.bars;
-   for(size_t i = 0; i < bars.size(); ++i)
+   for(size_t i = bars.size() - 48; i < bars.size(); ++i)
    {
       CString ohlcStr;
       ohlcStr.Format(" OHLC %g/%g/%g/%g", bars[i].open, bars[i].high, bars[i].low, bars[i].close);

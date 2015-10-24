@@ -1,5 +1,5 @@
 /// @file CQGAPIFacade.h
-/// @brief Simple C++ facade for CQG API, v0.12.
+/// @brief Simple C++ facade for CQG API, v0.13.
 /// @copyright Licensed under the MIT License.
 /// @author Rostislav Ostapenko (rostislav.ostapenko@gmail.com)
 /// @date 16-Feb-2015
@@ -107,10 +107,16 @@ typedef std::vector<SymbolInfo> Symbols;
 /// @brief Timed bars request definition.
 struct BarsRequest
 {
+   enum { UseAllSessions = 31 };
+
    CString symbol;               ///< Symbol to request bars.
-   COleDateTime rangeStart;      ///< Bars range start (Line Time).
-   COleDateTime rangeEnd;        ///< Bars range end (Line Time).
+   bool useIndexRange;           ///< True if startIndex/endIndex shall be used, false if startDate/endDate.
+   COleDateTime startDate;       ///< Bars range start date/time (Line Time).
+   COleDateTime endDate;         ///< Bars range end date/time (Line Time).
+   long startIndex;              ///< Bars range start index.
+   long endIndex;                ///< Bars range end index.
    long intradayPeriodInMinutes; ///< Intraday period in minutes for bars, e.g. 60 for hourly bars.
+   long sessionsFilter;          ///< Sessions filter. Special value 31 means all sessions, 0 means primary only.
 };
 
 /// @brief Timed bar information.
@@ -130,6 +136,7 @@ struct Bars
 {
    CString requestGuid; ///< Timed bars request guid.
    CString error;       ///< Error description, empty if no error.
+   long requestedCount; ///< Number of bars requested, may be greater than actually rceeived.
    BarInfos bars;       ///< Received bars.
 };
 

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <map>
+
 #include "CQGAPIFacade.h"
 
 
@@ -26,6 +28,8 @@ private:
    CString m_stpOrderGuid;   ///< Stop order guid.
    cqg::ID m_gwAccID;        ///< Main GW account ID used.
 
+   std::map<CString, CString> m_barReqSymbols; ///< Bar requests mapped to symbols.
+
    /// @brief Writes string to console.
    /// @param msg [in] mesage to console.
    void write(const CString& msg);
@@ -37,9 +41,11 @@ private:
    /// @brief Prints working orders to console.
    void printWorkingOrders();
 
-   /// @brief Requests hour OHLC bars past 24 hours for given symbol.
+   /// @brief Requests OHLC bars for given symbol since current moment.
+   /// @param symbol [in] symbol to request bars.
+   /// @param barsCount [in] number of bars requested.
    /// @return Bars request guid if success, empty string if failed.
-   CString requestBarsPast24Hours(const CString& symbol);
+   CString requestBars(const CString& symbol, int barsCount);
 
    /// @brief Dialog initialization.
    virtual BOOL OnInitDialog();
